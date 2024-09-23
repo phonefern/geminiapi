@@ -1,4 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const cors = require('cors');
+const express = require('express');
 
 // Set up your Google Gemini API Key
 const apiKey = 'AIzaSyAYinKiYLPNeCT5pqRQkpp5UDP_cO9pmYc'; // Replace with your actual Gemini API key
@@ -10,11 +12,13 @@ const availableModels = {
   "packagetestv2-nettsfkvxpqs": genAI.getGenerativeModel({ model: "tunedModels/packagetestv2-nettsfkvxpqs" }),
 };
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Only POST requests are allowed' });
-  }
+// Create the Express app
+const app = express();
+app.use(express.json());
+app.use(cors({ origin: true }));
 
+// API Route: Main function to handle AI requests
+app.post('/geminiapi/api', async (req, res) => {
   const { question, model } = req.body;
 
   // Validate if the question and model are provided
@@ -45,9 +49,18 @@ export default async function handler(req, res) {
     // Send the message and get the response
     const result = await chatSession.sendMessage(question);
 
-    res.status(200).json({ answer: result.response.text().trim() });
+    res.json({ answer: result.response.text().trim() });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error processing AI response' });
   }
-}
+});
+
+// Start the server (ถ้าอยากทดสอบในเครื่อง)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+// Export the app for Vercel
+module.exports = app;
