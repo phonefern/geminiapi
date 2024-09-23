@@ -1,5 +1,5 @@
-const functions = require('firebase-functions');
 const cors = require('cors');
+const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Set up your Google Gemini API Key
@@ -12,46 +12,55 @@ const availableModels = {
   "packagetestv2-nettsfkvxpqs": genAI.getGenerativeModel({ model: "tunedModels/packagetestv2-nettsfkvxpqs" }),
 };
 
+// Create the Express app
+const app = express();
+app.use(express.json());
+
 // CORS configuration
-const corsHandler = cors({ origin: true });
+app.use(cors({ origin: true }));
 
-// Define the Firebase function
-exports.askAI = functions.https.onRequest((req, res) => {
-  corsHandler(req, res, async () => {
-    const { question, model } = req.body;
-
-    // Validate if the question and model are provided
-    if (!question) {
-      return res.status(400).json({ error: 'Question is required.' });
-    }
-
-    if (!model || !availableModels[model]) {
-      return res.status(400).json({ error: 'Invalid or missing model selected.' });
-    }
-
-    const selectedModel = availableModels[model];
-
-    const generationConfig = {
-      temperature: 0.6,
-      topP: 0.95,
-      topK: 64,
-      maxOutputTokens: 512,
-    };
-
-    try {
-      // Start a chat session using the selected model
-      const chatSession = selectedModel.startChat({
-        generationConfig,
-        history: [],
-      });
-
-      // Send the message and get the response
-      const result = await chatSession.sendMessage(question);
-
-      res.json({ answer: result.response.text().trim() });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Error processing AI response' });
-    }
-  });
+// API Route: Check if the path contains "hello"
+app.get('/api/askAI/hello', (req, res) => {
+  res.json({ message: 'Hello, welcome to the AI API!' });
 });
+
+// API Route: Main function to handle AI requests
+app.post('/api/askAI', async (req, res) => {
+  const { question, model } = req.body;
+
+  // Validate if the question and model are provided
+  if (!question) {
+    return res.status(400).json({ error: 'Question is required.' });
+  }
+
+  if (!model || !availableModels[model]) {
+    return res.status(400).json({ error: 'Invalid or missing model selected.' });
+  }
+
+  const selectedModel = availableModels[model];
+
+  const generationConfig = {
+    temperature: 0.6,
+    topP: 0.95,
+    topK: 64,
+    maxOutputTokens: 512,
+  };
+
+  try {
+    // Start a chat session using the selected model
+    const chatSession = selectedModel.startChat({
+      generationConfig,
+      history: [],
+    });
+
+    // Send the message and get the response
+    const result = await chatSession.sendMessage(question);
+
+    res.json({ answer: result.response.text().trim() });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error processing AI response' });
+  }
+});
+
+module.exports = app;
