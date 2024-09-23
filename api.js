@@ -20,12 +20,12 @@ app.use(express.json());
 app.use(cors({ origin: true }));
 
 // API Route: Check if the path contains "hello"
-app.get('/GEMINIAPI/api/hello', (req, res) => {
+app.get('/geminiapi/api/hello', (req, res) => {
   res.json({ message: 'Hello, welcome to the AI API!' });
 });
 
 // API Route: Main function to handle AI requests
-app.post('/GEMINIAPI/api', async (req, res) => {
+app.post('/geminiapi/api', async (req, res) => {
   const { question, model } = req.body;
 
   // Validate if the question and model are provided
