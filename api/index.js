@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(cors({ origin: true }));
 
 // API Route: Main function to handle AI requests
-app.post('/geminiapi/api', async (req, res) => {
+app.post('/api', async (req, res) => {
   const { question, model } = req.body;
 
   // Validate if the question and model are provided
