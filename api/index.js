@@ -1,5 +1,3 @@
-const cors = require('cors');
-const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Set up your Google Gemini API Key
@@ -12,20 +10,11 @@ const availableModels = {
   "packagetestv2-nettsfkvxpqs": genAI.getGenerativeModel({ model: "tunedModels/packagetestv2-nettsfkvxpqs" }),
 };
 
-// Create the Express app
-const app = express();
-app.use(express.json());
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Only POST requests are allowed' });
+  }
 
-// CORS configuration
-app.use(cors({ origin: true }));
-
-// API Route: Check if the path contains "hello"
-app.get('/geminiapi/api/hello', (req, res) => {
-  res.json({ message: 'Hello, welcome to the AI API!' });
-});
-
-// API Route: Main function to handle AI requests
-app.post('/geminiapi/api', async (req, res) => {
   const { question, model } = req.body;
 
   // Validate if the question and model are provided
@@ -56,11 +45,9 @@ app.post('/geminiapi/api', async (req, res) => {
     // Send the message and get the response
     const result = await chatSession.sendMessage(question);
 
-    res.json({ answer: result.response.text().trim() });
+    res.status(200).json({ answer: result.response.text().trim() });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error processing AI response' });
   }
-});
-
-module.exports = app;
+}
