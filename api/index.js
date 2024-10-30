@@ -15,6 +15,7 @@ const fileManager = new GoogleAIFileManager(apiKey);
 const availableModels = {
   "gemini-1.5-flash": genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
   "packagetestv2-nettsfkvxpqs": genAI.getGenerativeModel({ model: "tunedModels/packagetestv2-nettsfkvxpqs" }),
+  "packagedatabhh-hyonhg4tzbti": genAI.getGenerativeModel({ model: "tunedModels/packagedatabhh-hyonhg4tzbti" }),
 };
 
 // Set up multer to handle file uploads
