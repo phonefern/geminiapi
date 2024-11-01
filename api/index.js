@@ -73,13 +73,13 @@ module.exports = async (req, res) => {
     }
 
     const selectedModel = availableModels[model];
-    const generationConfig = {
-      temperature: 1,
-      topP: 0.95,
-      topK: 64,
-      maxOutputTokens: 512,
-      responseMimeType: "text/plain",
-    };
+    // const generationConfig = {
+    //   temperature: 1,
+    //   topP: 0.95,
+    //   topK: 64,
+    //   maxOutputTokens: 512,
+    //   responseMimeType: "text/plain",
+    // };
 
     let uploadedFile = null;
     console.log("file",file)
@@ -127,7 +127,7 @@ module.exports = async (req, res) => {
     }
 
     const chatSession = selectedModel.startChat({
-      generationConfig,
+      // generationConfig
       history,
     });
 
