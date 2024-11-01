@@ -1,66 +1,105 @@
-const express = require('express');
-const cors = require('cors');
 const multer = require('multer');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { GoogleAIFileManager } = require('@google/generative-ai/server');
-const app = express();
-const apiKey = 'AIzaSyAYinKiYLPNeCT5pqRQkpp5UDP_cO9pmYc';
+const fs = require('fs');
+const path = require('path');
 
-app.use(cors());
-app.use(express.json());
-
+// Initialize Google Generative AI
+const apiKey ='AIzaSyAYinKiYLPNeCT5pqRQkpp5UDP_cO9pmYc'; // Use environment variables
 const genAI = new GoogleGenerativeAI(apiKey);
 const fileManager = new GoogleAIFileManager(apiKey);
 
 const availableModels = {
   "gemini-1.5-flash": genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
   "packagetestv2-nettsfkvxpqs": genAI.getGenerativeModel({ model: "tunedModels/packagetestv2-nettsfkvxpqs" }),
+  "package-data-bhh-main": genAI.getGenerativeModel({ model: "tunedModels/package-data-bhh-main" }),
 };
 
-// Set up multer to handle file uploads
-const upload = multer({ dest: 'uploads/' });
+// Multer setup for parsing multipart/form-data
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
-// Function to upload the file to Gemini
-async function uploadToGemini(path, mimeType) {
-  const uploadResult = await fileManager.uploadFile(path, {
-    mimeType,
-    displayName: path,
+// Helper function to parse multipart/form-data
+const parseForm = (req) => {
+  return new Promise((resolve, reject) => {
+    upload.single('image')(req, {}, (err) => {
+      if (err) return reject(err);
+      resolve();
+    });
   });
-  const file = uploadResult.file;
-  console.log(`Uploaded file ${file.displayName} as: ${file.name}`);
-  return file;
-}
+};
 
-// POST /api/index - Handle both file and question text
-app.post('/api/index', upload.single('image'), async (req, res) => {
-  const { question, model } = req.body;
-  const file = req.file;
+module.exports = async (req, res) => {
+  // **CORS Handling Start**
 
-  if (!question) {
-    return res.status(400).json({ error: 'Question is required.' });
+  // Allowed origins (update this with your frontend's actual origin in production)
+  const allowedOrigins = ['http://localhost:5173','https://bhchat-v1.web.app','https://bhchat-v1.firebaseapp.com']; // Add your production frontend URL here
+
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    // Optionally, reject requests from disallowed origins
+    res.setHeader('Access-Control-Allow-Origin', 'null');
   }
 
-  if (!model || !availableModels[model]) {
-    return res.status(400).json({ error: 'Invalid model selected.' });
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight response for 1 day
+
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  const selectedModel = availableModels[model];
-  const generationConfig = {
-    temperature: 1,
-    topP: 0.95,
-    topK: 64,
-    maxOutputTokens: 512,
-    responseMimeType: "text/plain",
-  };
+  // **CORS Handling End**
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   try {
-    let uploadedFile = null;
+    await parseForm(req);
 
-    // If a file is provided, upload it to Gemini
+    const { question, model } = req.body;
+    const file = req.file;
+
+    if (!question) {
+      return res.status(400).json({ error: 'Question is required.' });
+    }
+
+    if (!model || !availableModels[model]) {
+      return res.status(400).json({ error: 'Invalid model selected.' });
+    }
+
+    const selectedModel = availableModels[model];
+    const generationConfig = {
+      temperature: 1,
+      topP: 0.95,
+      topK: 64,
+      maxOutputTokens: 512,
+      responseMimeType: "text/plain",
+    };
+
+    let uploadedFile = null;
+    console.log("file",file)
     if (file) {
       const mimeType = file.mimetype;
-      uploadedFile = await uploadToGemini(file.path, mimeType);
+      /* const tempPath = path.join('/tmp', file.originalname);
+      fs.writeFileSync(tempPath, file.buffer); */
+      
+      // Try to upload the file
+      uploadedFile = await fileManager.uploadFile(file, {
+        mimeType,
+        displayName: file.originalname,
+      });
+      
+      // Log the file URI to check if it's valid
+      console.log("Uploaded File URI: ", uploadedFile.uri);
+      
+      fs.unlinkSync(tempPath);
     }
+    
 
     const history = [
       {
@@ -79,11 +118,12 @@ app.post('/api/index', upload.single('image'), async (req, res) => {
           {
             fileData: {
               mimeType: uploadedFile.mimeType,
-              fileUri: uploadedFile.uri,
+              fileUri: uploadedFile.uri, 
             },
           }
         ]
       });
+      
     }
 
     const chatSession = selectedModel.startChat({
@@ -93,11 +133,10 @@ app.post('/api/index', upload.single('image'), async (req, res) => {
 
     const result = await chatSession.sendMessage(question);
     console.log(result.response.text());
-    res.json({ answer: result.response.text().trim() });
+    res.status(200).json({ answer: result.response.text().trim() });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error processing AI response' });
   }
-});
-
-module.exports = app;
+};
