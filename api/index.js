@@ -32,17 +32,7 @@ const parseForm = (req) => {
 module.exports = async (req, res) => {
   // **CORS Handling Start**
 
-  // Allowed origins (update this with your frontend's actual origin in production)
-  const allowedOrigins = ['http://localhost:5173','https://bhchat-v1.web.app','https://bhchat-v1.firebaseapp.com']; // Add your production frontend URL here
-
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    // Optionally, reject requests from disallowed origins
-    res.setHeader('Access-Control-Allow-Origin', 'null');
-  }
-
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight response for 1 day
@@ -82,7 +72,7 @@ module.exports = async (req, res) => {
     // };
 
     let uploadedFile = null;
-    console.log("file",file)
+    console.log("file", file);
     if (file) {
       const mimeType = file.mimetype;
       /* const tempPath = path.join('/tmp', file.originalname);
@@ -140,3 +130,4 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: 'Error processing AI response' });
   }
 };
+
